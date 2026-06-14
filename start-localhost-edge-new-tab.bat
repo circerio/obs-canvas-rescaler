@@ -1,6 +1,6 @@
 @echo off
 set PORT=8777
-set URL=http://127.0.0.1:%PORT%/index.html?v=polished-ui-v4-exact-1.0.5
+set URL=http://127.0.0.1:%PORT%/
 
 cd /d "%~dp0"
 

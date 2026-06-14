@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>OBS Canvas Resolution Switcher - Polished UI v4</title>
+  <title>OBS Canvas Rescaler</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -373,8 +373,8 @@
 
     <div class="ui">
       <section class="brand card">
-        <div class="brand-title">OBS <span class="accent">Canvas</span> Resolution Switcher</div>
-        <div class="brand-sub">Polished UI v4 - direct OBS Virtual Camera input</div>
+        <div class="brand-title">OBS <span class="accent">Canvas</span> Rescaler</div>
+        <div class="brand-sub">Browser-based resolution switcher for OBS Virtual Camera</div>
       </section>
 
       <section class="status-card card">
@@ -409,7 +409,7 @@
                 <option value="576p">576p | 1024x576</option>
                 <option value="540p">540p | 960x540 | Common low-res target</option>
                 <option value="480p">480p | 854x480</option>
-                <option value="360p">360p | 640x360 | Low-end test preset</option>
+                <option value="360p">360p | 640x360 | Low-end preset</option>
               </optgroup>
 
               <optgroup label="Fine tuning: 1080p to 720p">
@@ -453,7 +453,7 @@
     </div>
 
     <div class="footer">
-      v4 - F Fullscreen - H Hide UI - 0 Direct - 1 1080p - 2 900p - 3 720p - 4 648p - 5 600p - 6 576p - 7 540p - 8 480p
+      F Fullscreen - H Hide UI - 0 Direct - 1 1080p - 2 900p - 3 720p - 4 648p - 5 600p - 6 576p - 7 540p - 8 480p
     </div>
   </div>
 
@@ -485,9 +485,9 @@
     let knownDevices = [];
 
     const STORAGE_KEYS = {
-      cameraId: 'obs_canvas_camera_device_id_polished_v4',
-      quality: 'obs_canvas_quality_polished_v4',
-      downscale: 'obs_canvas_downscale_polished_v4'
+      cameraId: 'obs_canvas_rescaler_camera_device_id',
+      quality: 'obs_canvas_rescaler_quality',
+      downscale: 'obs_canvas_rescaler_downscale'
     };
 
     const QUALITY = {
@@ -650,7 +650,7 @@
       return devices;
     }
 
-    function buildExactCameraConstraints(deviceId) {
+    function buildCameraConstraints(deviceId) {
       return {
         video: {
           deviceId: { exact: deviceId }
@@ -659,8 +659,8 @@
       };
     }
 
-    async function openExactCamera(deviceId) {
-      return await navigator.mediaDevices.getUserMedia(buildExactCameraConstraints(deviceId));
+    async function openCameraDevice(deviceId) {
+      return await navigator.mediaDevices.getUserMedia(buildCameraConstraints(deviceId));
     }
 
     async function openObsCameraOnly() {
@@ -691,7 +691,7 @@
       }
 
       localStorage.setItem(STORAGE_KEYS.cameraId, targetId);
-      return await openExactCamera(targetId);
+      return await openCameraDevice(targetId);
     }
 
     async function ensureCameraStarted(forceRestart = false) {
