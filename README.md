@@ -6,6 +6,30 @@ OBS Canvas Rescaler opens your OBS Virtual Camera stream in a browser, optionall
 
 Everything runs locally in your browser. No video is sent by this tool.
 
+## Why this exists
+
+Some capture sources output a clean 1080p signal, but the actual rendered image inside that signal may be lower than 1080p or may already contain visible aliasing from an earlier scale pass.
+
+If a browser-side video processing pipeline receives that already-upscaled 1080p image directly, it may preserve or emphasize jagged edges as if they were real detail.
+
+This tool lets you quickly compare different effective input resolutions, such as 900p, 810p, 720p, 648p, 600p, 576p, 540p, and 480p, without changing the OBS canvas every time.
+
+The goal is not always to use the highest input resolution. In some cases, a slightly lower canvas resolution can reduce aliasing and produce a cleaner final image.
+
+## Visual comparison
+
+The following images show one example where a 900p canvas output gives smoother edges than a direct 1080p input.
+
+| 900p canvas output | 1080p direct input |
+| --- | --- |
+| ![900p smoother overview](assets/comparison/900p-smoother-overview.png) | ![1080p more jagged overview](assets/comparison/1080p-more-jagged-overview.png) |
+
+### Zoomed comparison
+
+![Zoomed comparison 1](assets/comparison/zoomed-comparison-1.png)
+
+![Zoomed comparison 2](assets/comparison/zoomed-comparison-2.png)
+
 ## Features
 
 - Opens OBS Virtual Camera directly by device ID.
@@ -162,7 +186,7 @@ Direct OBS input: no canvas rescaling.
 1080p: keeps the original 1080p source size.
 900p: useful when a source looks too jagged at direct 1080p.
 720p: useful for lower effective-resolution content or UI-style sources.
-540p / 480p / 360p: useful for aggressive reconstruction experiments or low-resolution sources.
+540p / 480p / 360p: useful for stronger rescaling comparisons or low-resolution sources.
 ```
 
 ### 6. Choose downscale quality

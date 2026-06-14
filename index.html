@@ -650,7 +650,7 @@
       return devices;
     }
 
-    function buildCameraConstraints(deviceId) {
+    function buildExactCameraConstraints(deviceId) {
       return {
         video: {
           deviceId: { exact: deviceId }
@@ -659,8 +659,8 @@
       };
     }
 
-    async function openCameraDevice(deviceId) {
-      return await navigator.mediaDevices.getUserMedia(buildCameraConstraints(deviceId));
+    async function openExactCamera(deviceId) {
+      return await navigator.mediaDevices.getUserMedia(buildExactCameraConstraints(deviceId));
     }
 
     async function openObsCameraOnly() {
@@ -691,7 +691,7 @@
       }
 
       localStorage.setItem(STORAGE_KEYS.cameraId, targetId);
-      return await openCameraDevice(targetId);
+      return await openExactCamera(targetId);
     }
 
     async function ensureCameraStarted(forceRestart = false) {
