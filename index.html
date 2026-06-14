@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OBS Canvas Resolution Switcher - Polished UI v4</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #05070b;
+      --panel: rgba(15, 20, 30, 0.76);
+      --panel-strong: rgba(19, 25, 37, 0.86);
+      --field: rgba(255, 255, 255, 0.075);
+      --field-hover: rgba(255, 255, 255, 0.105);
+      --line: rgba(255, 255, 255, 0.11);
+      --line-soft: rgba(255, 255, 255, 0.07);
+      --text: #f4f7fb;
+      --muted: #a9b4c5;
+      --muted-2: #7f8b9d;
+      --green: #45e489;
+      --green-2: #24c96c;
+      --blue: #77a8ff;
+      --blue-2: #477ee8;
+      --danger: #ff6d7d;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: black;
+    }
+
+    #source-video,
+    #scale-canvas {
+      display: none;
+    }
+
+    #output-video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      background: black;
+      display: block;
+    }
+
+    .ui {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: minmax(280px, 0.78fr) minmax(460px, 1.1fr) minmax(520px, 1.15fr);
+      gap: 14px;
+      align-items: stretch;
+      pointer-events: none;
+    }
+
+    .card {
+      pointer-events: auto;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: var(--radius-lg);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 16px 18px;
+      min-height: 78px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 18px;
+      font-weight: 850;
+      letter-spacing: 0.1px;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .brand-title .accent {
+      color: var(--green);
+    }
+
+    .brand-sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-card {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 9px;
+      padding: 13px 16px;
+      min-height: 78px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.064);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .pill.flex {
+      min-width: 0;
+      justify-content: flex-start;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pill .truncate {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      margin-right: 7px;
+      flex: 0 0 auto;
+    }
+
+    .dot.idle { background: #8d99aa; }
+    .dot.ok {
+      background: var(--green);
+      box-shadow: 0 0 14px rgba(69, 228, 137, 0.72);
+    }
+    .dot.err {
+      background: var(--danger);
+      box-shadow: 0 0 14px rgba(255, 109, 125, 0.7);
+    }
+
+    .status-text {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .control-card {
+      padding: 12px;
+      min-height: 78px;
+      min-width: 0;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .select-row,
+    .button-row {
+      display: grid;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .select-row {
+      grid-template-columns: minmax(170px, 0.95fr) minmax(250px, 1.25fr) minmax(150px, 0.8fr);
+    }
+
+    .button-row {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    select,
+    button {
+      height: 36px;
+      min-width: 0;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-sm);
+      outline: none;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.02em;
+    }
+
+    select {
+      min-width: 0;
+      width: 100%;
+      padding: 0 34px 0 12px;
+      appearance: none;
+      background:
+        linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.78) 50%) right 13px center / 6px 6px no-repeat,
+        linear-gradient(135deg, rgba(255,255,255,0.78) 50%, transparent 50%) right 9px center / 6px 6px no-repeat,
+        var(--field);
+      cursor: pointer;
+    }
+
+    select:hover {
+      background-color: var(--field-hover);
+    }
+
+    option,
+    optgroup {
+      background: #111827;
+      color: #f4f7fb;
+    }
+
+    button {
+      width: 100%;
+      padding: 0 12px;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.12s ease, background 0.12s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    button:active { transform: translateY(0); filter: brightness(0.98); }
+
+    .btn-primary {
+      border-color: rgba(91, 255, 156, 0.18);
+      background: linear-gradient(180deg, #55f0a0, var(--green-2));
+      color: #06150d;
+      box-shadow: 0 8px 22px rgba(36, 201, 108, 0.20);
+    }
+
+    .btn-blue {
+      border-color: rgba(119, 168, 255, 0.18);
+      background: linear-gradient(180deg, var(--blue), var(--blue-2));
+      color: #061022;
+      box-shadow: 0 8px 22px rgba(71, 126, 232, 0.20);
+    }
+
+    .btn-ghost {
+      background: var(--field);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      border-color: rgba(255, 109, 125, 0.18);
+      background: rgba(255, 109, 125, 0.16);
+      color: #ffd7dc;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      max-width: calc(100vw - 40px);
+      padding: 9px 14px;
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      background: rgba(15, 20, 30, 0.66);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+      pointer-events: auto;
+    }
+
+    .hidden-ui .ui,
+    .hidden-ui .footer {
+      display: none;
+    }
+
+    @media (max-width: 1500px) {
+      .ui {
+        grid-template-columns: 1fr 1.2fr;
+      }
+
+      .control-card {
+        grid-column: 1 / -1;
+      }
+
+      .select-row {
+        grid-template-columns: minmax(180px, 0.95fr) minmax(260px, 1.25fr) minmax(160px, 0.8fr);
+      }
+
+      .button-row {
+        grid-template-columns: repeat(5, minmax(100px, 1fr));
+      }
+    }
+
+    @media (max-width: 980px) {
+      .ui {
+        grid-template-columns: 1fr;
+      }
+
+      .brand-sub,
+      .status-text,
+      .footer {
+        white-space: normal;
+      }
+
+      .select-row {
+        grid-template-columns: 1fr;
+      }
+
+      .button-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      button,
+      select {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <video id="source-video" autoplay playsinline muted></video>
+    <canvas id="scale-canvas"></canvas>
+    <video id="output-video" autoplay playsinline muted></video>
+
+    <div class="ui">
+      <section class="brand card">
+        <div class="brand-title">OBS <span class="accent">Canvas</span> Resolution Switcher</div>
+        <div class="brand-sub">Polished UI v4 - direct OBS Virtual Camera input</div>
+      </section>
+
+      <section class="status-card card">
+        <div class="status-row">
+          <div class="pill">
+            <span id="status-dot" class="dot idle"></span>
+            <span id="status-label">Idle</span>
+          </div>
+          <div class="pill flex">
+            <span id="res-badge" class="truncate">No signal</span>
+          </div>
+        </div>
+        <div id="status-text" class="status-text">Allow camera permission, then press Start.</div>
+      </section>
+
+      <section class="control-card card">
+        <div class="controls-grid">
+          <div class="select-row">
+            <select id="camera-select" title="Camera source">
+              <option value="auto" selected>Auto OBS Virtual Camera</option>
+            </select>
+
+            <select id="quality-select" title="Output resolution">
+              <optgroup label="Common presets">
+                <option value="direct">Direct OBS input</option>
+                <option value="1080p">1080p | 1920x1080</option>
+                <option value="900p">900p | 1600x900 | Common docked target</option>
+                <option value="810p">810p | 1440x810 | Dynamic range preset</option>
+                <option value="720p" selected>720p | 1280x720 | UI / handheld baseline</option>
+                <option value="648p">648p | 1152x648 | Lower dynamic preset</option>
+                <option value="600p">600p | 1067x600</option>
+                <option value="576p">576p | 1024x576</option>
+                <option value="540p">540p | 960x540 | Common low-res target</option>
+                <option value="480p">480p | 854x480</option>
+                <option value="360p">360p | 640x360 | Low-end test preset</option>
+              </optgroup>
+
+              <optgroup label="Fine tuning: 1080p to 720p">
+                <option value="972p">972p | 1728x972</option>
+                <option value="936p">936p | 1664x936</option>
+                <option value="864p">864p | 1536x864</option>
+                <option value="792p">792p | 1408x792</option>
+                <option value="756p">756p | 1344x756</option>
+              </optgroup>
+
+              <optgroup label="Fine tuning: 720p to 540p">
+                <option value="684p">684p | 1216x684</option>
+                <option value="612p">612p | 1088x612</option>
+                <option value="504p">504p | 896x504</option>
+              </optgroup>
+
+              <optgroup label="Fine tuning: below 540p">
+                <option value="450p">450p | 800x450</option>
+                <option value="432p">432p | 768x432</option>
+                <option value="396p">396p | 704x396</option>
+              </optgroup>
+            </select>
+
+            <select id="smooth-select" title="Canvas downscale quality">
+              <option value="high" selected>Downscale: High</option>
+              <option value="medium">Downscale: Medium</option>
+              <option value="low">Downscale: Low</option>
+              <option value="nearest">Downscale: Nearest</option>
+            </select>
+          </div>
+
+          <div class="button-row">
+            <button id="start-btn" class="btn-primary">Start</button>
+            <button id="fullscreen-btn" class="btn-blue">Fullscreen</button>
+            <button id="toggle-ui-btn" class="btn-ghost">Hide UI</button>
+            <button id="refresh-btn" class="btn-ghost">Refresh</button>
+            <button id="reset-btn" class="btn-danger">Reset</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">
+      v4 - F Fullscreen - H Hide UI - 0 Direct - 1 1080p - 2 900p - 3 720p - 4 648p - 5 600p - 6 576p - 7 540p - 8 480p
+    </div>
+  </div>
+
+  <script>
+    const app = document.getElementById('app');
+    const sourceVideo = document.getElementById('source-video');
+    const outputVideo = document.getElementById('output-video');
+    const canvas = document.getElementById('scale-canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    const statusDot = document.getElementById('status-dot');
+    const statusLabel = document.getElementById('status-label');
+    const statusText = document.getElementById('status-text');
+    const resBadge = document.getElementById('res-badge');
+
+    const cameraSelect = document.getElementById('camera-select');
+    const qualitySelect = document.getElementById('quality-select');
+    const smoothSelect = document.getElementById('smooth-select');
+    const startBtn = document.getElementById('start-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const toggleUiBtn = document.getElementById('toggle-ui-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    let cameraStream = null;
+    let canvasStream = null;
+    let drawLoopId = null;
+    let uiHidden = false;
+    let knownDevices = [];
+
+    const STORAGE_KEYS = {
+      cameraId: 'obs_canvas_camera_device_id_polished_v4',
+      quality: 'obs_canvas_quality_polished_v4',
+      downscale: 'obs_canvas_downscale_polished_v4'
+    };
+
+    const QUALITY = {
+      direct: null,
+      "1080p": { width: 1920, height: 1080, fps: 60 },
+      "972p":  { width: 1728, height: 972, fps: 60 },
+      "936p":  { width: 1664, height: 936, fps: 60 },
+      "900p":  { width: 1600, height: 900, fps: 60 },
+      "864p":  { width: 1536, height: 864, fps: 60 },
+      "810p":  { width: 1440, height: 810, fps: 60 },
+      "792p":  { width: 1408, height: 792, fps: 60 },
+      "756p":  { width: 1344, height: 756, fps: 60 },
+      "720p":  { width: 1280, height: 720, fps: 60 },
+      "684p":  { width: 1216, height: 684, fps: 60 },
+      "648p":  { width: 1152, height: 648, fps: 60 },
+      "612p":  { width: 1088, height: 612, fps: 60 },
+      "600p":  { width: 1067, height: 600, fps: 60 },
+      "576p":  { width: 1024, height: 576, fps: 60 },
+      "540p":  { width: 960,  height: 540, fps: 60 },
+      "504p":  { width: 896,  height: 504, fps: 60 },
+      "480p":  { width: 854,  height: 480, fps: 60 },
+      "450p":  { width: 800,  height: 450, fps: 60 },
+      "432p":  { width: 768,  height: 432, fps: 60 },
+      "396p":  { width: 704,  height: 396, fps: 60 },
+      "360p":  { width: 640,  height: 360, fps: 60 }
+    };
+
+    const HOTKEY_QUALITY = {
+      "0": "direct",
+      "1": "1080p",
+      "2": "900p",
+      "3": "720p",
+      "4": "648p",
+      "5": "600p",
+      "6": "576p",
+      "7": "540p",
+      "8": "480p"
+    };
+
+    function setStatus(type, label, text) {
+      statusDot.className = 'dot ' + type;
+      statusLabel.textContent = label;
+      statusText.textContent = text;
+    }
+
+    function rememberSettings() {
+      localStorage.setItem(STORAGE_KEYS.quality, qualitySelect.value);
+      localStorage.setItem(STORAGE_KEYS.downscale, smoothSelect.value);
+      if (cameraSelect.value && cameraSelect.value !== 'auto') {
+        localStorage.setItem(STORAGE_KEYS.cameraId, cameraSelect.value);
+      }
+    }
+
+    function loadSettings() {
+      const q = localStorage.getItem(STORAGE_KEYS.quality);
+      const d = localStorage.getItem(STORAGE_KEYS.downscale);
+      if (q && QUALITY.hasOwnProperty(q)) qualitySelect.value = q;
+      if (d) smoothSelect.value = d;
+    }
+
+    function clearRememberedCamera() {
+      localStorage.removeItem(STORAGE_KEYS.cameraId);
+      cameraSelect.value = 'auto';
+    }
+
+    function stopCanvasStream() {
+      if (drawLoopId) {
+        cancelAnimationFrame(drawLoopId);
+        drawLoopId = null;
+      }
+
+      if (canvasStream) {
+        canvasStream.getTracks().forEach(track => track.stop());
+        canvasStream = null;
+      }
+    }
+
+    function stopCameraStream() {
+      stopCanvasStream();
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+
+      sourceVideo.srcObject = null;
+      outputVideo.srcObject = null;
+    }
+
+    function getCameraInfo() {
+      const track = cameraStream?.getVideoTracks?.()[0];
+      const settings = track?.getSettings?.() || {};
+      return {
+        label: track?.label || 'Camera',
+        width: settings.width || sourceVideo.videoWidth || '?',
+        height: settings.height || sourceVideo.videoHeight || '?',
+        fps: settings.frameRate || '?'
+      };
+    }
+
+    function getOutputInfo() {
+      const track = outputVideo.srcObject?.getVideoTracks?.()[0];
+      const settings = track?.getSettings?.() || {};
+      return {
+        width: settings.width || outputVideo.videoWidth || '?',
+        height: settings.height || outputVideo.videoHeight || '?',
+        fps: settings.frameRate || '?'
+      };
+    }
+
+    function updateInfo(mode) {
+      const cam = getCameraInfo();
+      const out = getOutputInfo();
+
+      if (mode === 'direct') {
+        resBadge.textContent = `${cam.label} | Direct ${cam.width}x${cam.height} @ ${cam.fps} fps`;
+      } else {
+        resBadge.textContent = `${cam.label} | OBS ${cam.width}x${cam.height} -> Canvas ${out.width}x${out.height} @ ${out.fps} fps`;
+      }
+    }
+
+    function findObsCamera(devices) {
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      return (
+        videoDevices.find(device => /obs virtual camera/i.test(device.label)) ||
+        videoDevices.find(device => /obs/i.test(device.label)) ||
+        null
+      );
+    }
+
+    function refreshCameraSelect(devices, selectedId) {
+      knownDevices = devices.filter(device => device.kind === 'videoinput');
+
+      cameraSelect.innerHTML = '';
+
+      const autoOption = document.createElement('option');
+      autoOption.value = 'auto';
+      autoOption.textContent = 'Auto OBS Virtual Camera';
+      cameraSelect.appendChild(autoOption);
+
+      knownDevices.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `Camera ${index + 1} (permission required)`;
+        cameraSelect.appendChild(option);
+      });
+
+      if (selectedId && knownDevices.some(device => device.deviceId === selectedId)) {
+        cameraSelect.value = selectedId;
+      } else {
+        cameraSelect.value = 'auto';
+      }
+    }
+
+    async function enumerateCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const rememberedId = localStorage.getItem(STORAGE_KEYS.cameraId);
+      refreshCameraSelect(devices, rememberedId);
+      return devices;
+    }
+
+    function buildExactCameraConstraints(deviceId) {
+      return {
+        video: {
+          deviceId: { exact: deviceId }
+        },
+        audio: false
+      };
+    }
+
+    async function openExactCamera(deviceId) {
+      return await navigator.mediaDevices.getUserMedia(buildExactCameraConstraints(deviceId));
+    }
+
+    async function openObsCameraOnly() {
+      const devices = await enumerateCameras();
+
+      let targetId = null;
+      const selectedId = cameraSelect.value !== 'auto' ? cameraSelect.value : null;
+
+      if (selectedId) {
+        targetId = selectedId;
+      } else {
+        const obs = findObsCamera(devices);
+
+        if (!obs || !obs.deviceId) {
+          const hasHiddenLabels = devices
+            .filter(device => device.kind === 'videoinput')
+            .some(device => !device.label);
+
+          if (hasHiddenLabels) {
+            throw new Error('Camera permission is required. Allow camera permission, reload, then press Start.');
+          }
+
+          throw new Error('OBS Virtual Camera was not found. Start it in OBS or choose it manually.');
+        }
+
+        targetId = obs.deviceId;
+        cameraSelect.value = targetId;
+      }
+
+      localStorage.setItem(STORAGE_KEYS.cameraId, targetId);
+      return await openExactCamera(targetId);
+    }
+
+    async function ensureCameraStarted(forceRestart = false) {
+      if (cameraStream && !forceRestart) return;
+
+      if (forceRestart) stopCameraStream();
+
+      setStatus('idle', 'Starting', 'Starting the selected camera...');
+      resBadge.textContent = 'Connecting...';
+
+      cameraStream = await openObsCameraOnly();
+
+      sourceVideo.srcObject = cameraStream;
+
+      await new Promise(resolve => {
+        sourceVideo.onloadedmetadata = () => {
+          sourceVideo.play().catch(() => {});
+          resolve();
+        };
+      });
+    }
+
+    function applySmoothingSetting() {
+      const mode = smoothSelect.value;
+
+      if (mode === 'nearest') {
+        ctx.imageSmoothingEnabled = false;
+      } else {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = mode;
+      }
+    }
+
+    function startDirectOutput() {
+      stopCanvasStream();
+
+      outputVideo.srcObject = cameraStream;
+      outputVideo.play().catch(() => {});
+
+      updateInfo('direct');
+      setStatus('ok', 'Live', 'Direct mode: original camera stream.');
+    }
+
+    function startCanvasOutput(mode) {
+      const q = QUALITY[mode];
+      if (!q) {
+        startDirectOutput();
+        return;
+      }
+
+      stopCanvasStream();
+
+      canvas.width = q.width;
+      canvas.height = q.height;
+      applySmoothingSetting();
+
+      function drawFrame() {
+        if (sourceVideo.readyState >= 2) {
+          ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+        }
+        drawLoopId = requestAnimationFrame(drawFrame);
+      }
+
+      drawFrame();
+
+      canvasStream = canvas.captureStream(q.fps);
+      outputVideo.srcObject = canvasStream;
+      outputVideo.play().catch(() => {});
+
+      setTimeout(() => {
+        updateInfo(mode);
+        setStatus('ok', 'Live', `Canvas output: ${q.width}x${q.height}.`);
+      }, 300);
+    }
+
+    async function startOrSwitch(forceRestartCamera = false) {
+      const mode = qualitySelect.value;
+
+      try {
+        rememberSettings();
+        await ensureCameraStarted(forceRestartCamera);
+
+        if (mode === 'direct') {
+          startDirectOutput();
+        } else {
+          startCanvasOutput(mode);
+        }
+      } catch (error) {
+        setStatus('err', 'Error', `${error.name || 'Error'}: ${error.message}`);
+        resBadge.textContent = 'Failed';
+        console.error(error);
+      }
+    }
+
+    async function enterFullscreen() {
+      try {
+        if (outputVideo.requestFullscreen) {
+          await outputVideo.requestFullscreen();
+        } else if (outputVideo.webkitRequestFullscreen) {
+          await outputVideo.webkitRequestFullscreen();
+        } else if (outputVideo.msRequestFullscreen) {
+          await outputVideo.msRequestFullscreen();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    function toggleUI() {
+      uiHidden = !uiHidden;
+      app.classList.toggle('hidden-ui', uiHidden);
+      toggleUiBtn.textContent = uiHidden ? 'Show UI' : 'Hide UI';
+    }
+
+    async function resetCameraState() {
+      stopCameraStream();
+      clearRememberedCamera();
+      await enumerateCameras().catch(() => {});
+      setStatus('idle', 'Reset', 'Saved camera selection cleared.');
+      resBadge.textContent = 'No signal';
+    }
+
+    async function switchQuality(mode) {
+      qualitySelect.value = mode;
+      await startOrSwitch(false);
+    }
+
+    startBtn.addEventListener('click', () => startOrSwitch(false));
+    fullscreenBtn.addEventListener('click', enterFullscreen);
+    toggleUiBtn.addEventListener('click', toggleUI);
+    refreshBtn.addEventListener('click', async () => {
+      await enumerateCameras().catch(() => {});
+      setStatus('idle', 'Refreshed', 'Camera list refreshed.');
+    });
+    resetBtn.addEventListener('click', resetCameraState);
+
+    qualitySelect.addEventListener('change', () => {
+      rememberSettings();
+      if (cameraStream) startOrSwitch(false);
+    });
+
+    smoothSelect.addEventListener('change', () => {
+      rememberSettings();
+      if (cameraStream && qualitySelect.value !== 'direct') startOrSwitch(false);
+    });
+
+    cameraSelect.addEventListener('change', () => {
+      if (cameraSelect.value !== 'auto') {
+        localStorage.setItem(STORAGE_KEYS.cameraId, cameraSelect.value);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.cameraId);
+      }
+      if (cameraStream) startOrSwitch(true);
+    });
+
+    navigator.mediaDevices?.addEventListener?.('devicechange', async () => {
+      try {
+        await enumerateCameras();
+      } catch {}
+    });
+
+    document.addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+
+      if (key === 'f') {
+        enterFullscreen();
+      } else if (key === 'h') {
+        toggleUI();
+      } else if (HOTKEY_QUALITY[key]) {
+        switchQuality(HOTKEY_QUALITY[key]);
+      } else if (event.key === 'Escape' && uiHidden) {
+        toggleUI();
+      }
+    });
+
+    loadSettings();
+
+    enumerateCameras().catch(() => {});
+
+    setStatus('idle', 'Idle', 'Allow camera permission, then press Start.');
+  </script>
+</body>
+</html>
